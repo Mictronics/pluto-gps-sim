@@ -3,6 +3,8 @@
 PLUTO-GPS-SIM generates a GPS baseband signal IQ data stream, which is then transmitted by the 
 software-defined radio (SDR) platform [ADALM-Pluto](https://wiki.analog.com/university/tools/pluto).
 
+Project based on [gps-sdr-sim](https://github.com/osqzss/gps-sdr-sim). Kudos to Takuji Ebinuma.
+
 ### Generating the GPS signal file
 
 A user-defined trajectory can be specified in either a CSV file, which contains 
