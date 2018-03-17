@@ -70,6 +70,8 @@ Options:
   -v               Show details about simulated channels
   -A <attenuation> Set TX attenuation [dB] (default -20.0)
   -B <bw>          Set RF bandwidth [MHz] (default 5.0)
+  -U <uri>         ADALM-Pluto URI (eg. usb:1.2.5)
+  -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)
 ```
 
 The user motion can be specified in either dynamic or static mode:

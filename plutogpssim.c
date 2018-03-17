@@ -40,6 +40,8 @@ struct stream_cfg {
     pthread_cond_t data_cond;
     pthread_t tx_thread;
     pthread_mutex_t data_mutex; // Mutex to synchronize buffer access
+    const char *uri;
+    const char *hostname;    
     int exit; // Exit from the main loop when true 
 };
 
@@ -1721,7 +1723,9 @@ static void usage(void) {
             "  -i               Disable ionospheric delay for spacecraft scenario\n"
             "  -v               Show details about simulated channels\n"
             "  -A <attenuation> Set TX attenuation [dB] (default -20.0)\n"
-            "  -B <bw>          Set RF bandwidth [MHz] (default 5.0)\n");
+            "  -B <bw>          Set RF bandwidth [MHz] (default 5.0)\n"
+            "  -u <uri>         ADALM-Pluto URI\n"
+            "  -n <network>     ADALM-Pluto network IP or hostname (default pluto.local)\n");
 
     return;
 }
@@ -1768,8 +1772,14 @@ void *pluto_tx_thread_ep(void *arg)
     // Create IIO context to access ADALM-Pluto
     ctx = iio_create_default_context();
     if (ctx == NULL) {
-        ctx = iio_create_network_context("pluto.local");
-    }    
+        if(plutotx.hostname != NULL) {
+            ctx = iio_create_network_context(plutotx.hostname);
+        } else if (plutotx.uri != NULL) {
+            ctx = iio_create_context_from_uri(plutotx.uri);
+        } else {
+            ctx = iio_create_network_context("pluto.local");
+        }
+    }   
 
     if (ctx == NULL) {
         iio_strerror(errno, buf, sizeof(buf));
@@ -1939,6 +1949,8 @@ int main(int argc, char *argv[]) {
     plutotx.lo_hz = GHZ(1.575420); // 1.57542 GHz RF frequency
     plutotx.rfport = "A";
     plutotx.gain_db = -20.0;
+    plutotx.hostname = NULL;
+    plutotx.uri = NULL;
     
     pthread_mutex_init(&plutotx.data_mutex, NULL);
     pthread_cond_init(&plutotx.data_cond, NULL);
@@ -1958,7 +1970,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    while ((result = getopt(argc, argv, "e:u:g:c:l:s:T:t:i:v:A:B:")) != -1) {
+    while ((result = getopt(argc, argv, "e:u:g:c:l:s:T:t:i:v:A:B:U:N:")) != -1) {
         switch (result) {
             case 'e':
                 strcpy(navfile, optarg);
@@ -2038,6 +2050,12 @@ int main(int argc, char *argv[]) {
                 if(plutotx.bw_hz > MHZ(5.0)) plutotx.bw_hz = MHZ(5.0);
                 if(plutotx.bw_hz < MHZ(1.0)) plutotx.bw_hz = MHZ(1.0);
                 break;
+            case 'U':
+                plutotx.uri = optarg;
+                break;
+            case 'N':
+                plutotx.hostname = optarg;
+                break;                
             case ':':
             case '?':
                 usage();
