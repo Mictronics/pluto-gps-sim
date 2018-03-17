@@ -11,9 +11,6 @@
 
 #define FLOAT_CARR_PHASE // For RKT simulation. Higher computational load, but smoother carrier phase.
 
-#define TRUE	(1)
-#define FALSE	(0)
-
 /*! \brief Maximum length of a line in a text file (RINEX, motion) */
 #define MAX_CHAR (100)
 
@@ -135,8 +132,8 @@ typedef struct
 
 typedef struct
 {
-	int enable;
-	int vflg;
+	bool enable;
+	bool vflg;
 	double alpha0,alpha1,alpha2,alpha3;
 	double beta0,beta1,beta2,beta3;
 	double A0,A1;
