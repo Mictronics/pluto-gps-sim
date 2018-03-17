@@ -762,7 +762,7 @@ static void eph2sbf(const ephem_t eph, const ionoutc_t ionoutc, unsigned long sb
 }
 
 /*! \brief Count number of bits set to 1
- *  \param[in] v long word in whihc bits are counted
+ *  \param[in] v long word in which bits are counted
  *  \returns Count of bits set to 1
  */
 static unsigned long countBits(unsigned long v) {
@@ -900,7 +900,7 @@ static gpstime_t incGpsTime(gpstime_t g0, double dt) {
     return (g1);
 }
 
-/*! \brief Read Ephemersi data from the RINEX Navigation file */
+/*! \brief Read Ephemeris data from the RINEX Navigation file */
 
 /*  \param[out] eph Array of Output SV ephemeris data
  *  \param[in] fname File name of the RINEX file

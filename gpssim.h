@@ -76,7 +76,7 @@
 #define CODE_FREQ (1.023e6)
 #define CARR_TO_CODE (1.0/1540.0)
 
-#define EPHEM_ARRAY_SIZE (13) // for daily GPS broadcast ephemers file (brdc)
+#define EPHEM_ARRAY_SIZE (13) // for daily GPS broadcast ephemeris file (brdc)
 
 /*! \brief Structure representing GPS time */
 typedef struct
