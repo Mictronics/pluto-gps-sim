@@ -30,7 +30,9 @@ is selected.
 ### Build instructions
 #### Dependencies
 
-You will need the latest build and install of libad9361-dev and libiio-dev. The Debian packages 
+Build depends on libm, libpthread and libcurl4-openssl-dev.
+
+You will also need the latest build and install of libad9361-dev and libiio-dev. The Debian packages 
 libad9361-dev that is available up to Debian 9 (stretch) is outdated and missing a required function.
 So you have to build packages from source:
 ```
@@ -61,6 +63,7 @@ $ make all
 pluto-gps-sim [options]
 Options:
   -e <gps_nav>     RINEX navigation file for GPS ephemerides (required)
+  -f               Pull actual RINEX navigation file from NASA FTP server
   -u <user_motion> User motion file (dynamic mode)
   -g <nmea_gga>    NMEA GGA stream (dynamic mode)
   -c <location>    ECEF X,Y,Z in meters (static mode) e.g. 3967283.15,1022538.18,4872414.48
