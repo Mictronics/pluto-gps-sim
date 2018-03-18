@@ -2473,9 +2473,13 @@ int main(int argc, char *argv[]) {
 
         pthread_mutex_lock(&plutotx.data_mutex);
         for (isamp = 0; isamp < NUM_SAMPLES; isamp++) {
+#ifdef IQ_DAC_12BIT
             int64_t i_acc = 0;
             int64_t q_acc = 0;
-
+#else
+            int i_acc = 0;
+            int q_acc = 0;
+#endif            
             for (i = 0; i < MAX_CHAN; i++) {
                 if (chan[i].prn > 0) {
 #ifdef FLOAT_CARR_PHASE
