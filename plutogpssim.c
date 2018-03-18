@@ -2241,7 +2241,7 @@ int main(int argc, char *argv[]) {
             if(verb) {
                 curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
             } else {
-                curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+                curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
             }
             curl_easy_setopt(curl, CURLOPT_USERPWD, "anonymous:anonymous");
             res = curl_easy_perform(curl);
