@@ -19,11 +19,16 @@
 #include <signal.h>
 #include <sched.h>
 #include <unistd.h>
+#include <curl/curl.h>
 #include <iio.h>
 #include <ad9361.h>
 #include "gpssim.h"
 
 #define IQ_DAC_9BIT // Comment to use 8-Bit lookup tables for IQ sinus and cosinus
+#define RINEX_FILE_NAME "/tmp/rinex.dat"
+#define RINEX_FTP_URL "ftp://cddis.gsfc.nasa.gov/gnss/data/daily/"
+//#define RINEX_FTP_FOLDER "%Y/%j/%yn/brdc%j0.%yn.Z"
+#define RINEX_FTP_FOLDER "%Y/brdc/brdc%j0.%yn.Z"
 
 #define NOTUSED(V) ((void) V)
 #define MHZ(x) ((long long)(x*1000000.0 + .5))
@@ -49,6 +54,11 @@ static struct stream_cfg plutotx;
 static short *iq_buff = NULL;
 static pthread_t pluto_thread;
 static char rinex_date[20];
+
+struct ftp_file {
+    const char *filename;
+    FILE *stream;
+};
 
 #ifdef IQ_DAC_8BIT
 /* 8-bit IQ DAC amplitude */
@@ -1789,6 +1799,7 @@ static void usage(void) {
     fprintf(stderr, "Usage: pluto-gps-sim [options]\n"
             "Options:\n"
             "  -e <gps_nav>     RINEX navigation file for GPS ephemerides (required)\n"
+            "  -f               Pull actual RINEX navigation file from NASA FTP server\n"
             "  -u <user_motion> User motion file (dynamic mode)\n"
             "  -g <nmea_gga>    NMEA GGA stream (dynamic mode)\n"
             "  -c <location>    ECEF X,Y,Z in meters (static mode) e.g. 3967283.154,1022538.181,4872414.484\n"
@@ -1938,24 +1949,39 @@ void *pluto_tx_thread_ep(void *arg)
     }    
 
 pluto_thread_exit:
-    iio_channel_attr_write_bool(
-        iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
-        , "powerdown", true); // Turn OFF TX LO                
+    if (ctx) {
+        iio_channel_attr_write_bool(
+            iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
+            , "powerdown", true); // Turn OFF TX LO                
+    }
                 
     if (tx_buffer) { iio_buffer_destroy(tx_buffer); }
     if (tx0_i) { iio_channel_disable(tx0_i); }
     if (tx0_q) { iio_channel_disable(tx0_q); }
     if (ctx) { iio_context_destroy(ctx); }
- 
+
     // Wake the main thread (if it's still waiting)
     pthread_mutex_lock(&plutotx.data_mutex);
     plutotx.exit = true; // just in case
+    pthread_cond_signal(&plutotx.data_cond);
     pthread_mutex_unlock(&plutotx.data_mutex);
 #ifndef _WIN32
     pthread_exit(NULL);
 #else
     return NULL;
 #endif
+}
+
+static size_t fwrite_rinex(void *buffer, size_t size, size_t nmemb, void *stream)
+{
+  struct ftp_file *out = (struct ftp_file *)stream;
+  if(out && !out->stream) {
+    /* open file for writing */ 
+    out->stream = fopen(out->filename, "wb");
+    if(!out->stream)
+      return -1; /* failure, can't open file to write */ 
+  }
+  return fwrite(buffer, size, nmemb, out->stream);
 }
 
 int main(int argc, char *argv[]) {
@@ -1979,14 +2005,22 @@ int main(int argc, char *argv[]) {
 
     int iumd = 0;
     int numd;
-    char umfile[MAX_CHAR];
+    const char* umfile = NULL;
     double xyz[USER_MOTION_SIZE][3];
 
     bool staticLocationMode = false;
     bool nmeaGGA = false;
 
-    char navfile[MAX_CHAR];
-
+    bool use_ftp = false;
+    CURL *curl;
+    CURLcode res = CURLE_GOT_NOTHING;
+    struct ftp_file ftp = {
+        RINEX_FILE_NAME,
+        NULL
+    };
+  
+    const char* navfile = NULL;
+    
     int result;
     double gain[MAX_CHAN];
     double path_loss;
@@ -2010,8 +2044,6 @@ int main(int argc, char *argv[]) {
     ////////////////////////////////////////////////////////////
 
     // Default options
-    navfile[0] = 0;
-    umfile[0] = 0;
     g0.week = -1; // Invalid start time
     iduration = USER_MOTION_SIZE;
     duration = (double) iduration / 10.0; // Default duration
@@ -2044,17 +2076,20 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    while ((result = getopt(argc, argv, "e:u:g:c:l:s:T:t:i:v:A:B:U:N:")) != -1) {
+    while ((result = getopt(argc, argv, "e:f:u:g:c:l:s:T:t:i:v:A:B:U:N:?")) != -1) {
         switch (result) {
             case 'e':
-                strcpy(navfile, optarg);
+                navfile = optarg;
+                break;
+            case 'f':
+                use_ftp = true;
                 break;
             case 'u':
-                strcpy(umfile, optarg);
+                umfile = optarg;
                 nmeaGGA = false;
                 break;
             case 'g':
-                strcpy(umfile, optarg);
+                umfile = optarg;
                 nmeaGGA = true;
                 break;
             case 'c':
@@ -2139,12 +2174,12 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    if (navfile[0] == 0) {
+    if ((navfile == NULL) && (use_ftp == false)) {
         fprintf(stderr, "ERROR: GPS ephemeris file is not specified.\n");
         exit(1);
     }
 
-    if (umfile[0] == 0 && !staticLocationMode) {
+    if (umfile == NULL && !staticLocationMode) {
         // Default static location; Tokyo
         staticLocationMode = true;
         llh[0] = 35.681298 / R2D;
@@ -2190,7 +2225,44 @@ int main(int argc, char *argv[]) {
     ////////////////////////////////////////////////////////////
     // Read ephemeris
     ////////////////////////////////////////////////////////////
+    if(use_ftp) {
+        time_t t = time(NULL);
+        struct tm *tm = localtime(&t);
+        char* url = malloc(NAME_MAX);
+        strftime(url, NAME_MAX, RINEX_FTP_URL RINEX_FTP_FOLDER, tm);
+        
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+        curl = curl_easy_init();
+        if (curl) {
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite_rinex);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ftp);
+            curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_NONE);
+            if(verb) {
+                curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+            } else {
+                curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+            }
+            curl_easy_setopt(curl, CURLOPT_USERPWD, "anonymous:anonymous");
+            res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+            if (res != CURLE_OK) {
+                fprintf(stderr, "Curl error: %d\n", res);
+            }      
+        }
 
+        if (ftp.stream)
+            fclose(ftp.stream);
+        
+        if (res == CURLE_OK) {
+            system("zcat " RINEX_FILE_NAME " > brdc.n");
+        }
+        
+        free(url);
+        curl_global_cleanup();
+        unlink(RINEX_FILE_NAME);
+    }
+    
     neph = readRinexNavAll(eph, &ionoutc, navfile);
 
     if (neph == 0) {
