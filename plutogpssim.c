@@ -2555,7 +2555,7 @@ int main(int argc, char *argv[]) {
         //
         igrx = (int) (grx.sec * 10.0 + 0.5);
 
-        if (igrx % 100 == 0) // Every 30 seconds
+        if (igrx % 300 == 0) // Every 30 seconds
         {
             // Update navigation message
             for (i = 0; i < MAX_CHAN; i++) {
