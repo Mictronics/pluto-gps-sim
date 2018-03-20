@@ -1015,7 +1015,7 @@ static int readRinexNavAll(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const cha
     // Clear valid flag
     for (ieph = 0; ieph < EPHEM_ARRAY_SIZE; ieph++)
         for (sv = 0; sv < MAX_SAT; sv++)
-            eph[ieph][sv].vflg = 0;
+            eph[ieph][sv].vflg = false;
 
     // Read header lines
     while (1) {
@@ -1321,7 +1321,7 @@ static int readRinexNavAll(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const cha
             break;
 
         // Set valid flag
-        eph[ieph][sv].vflg = 1;
+        eph[ieph][sv].vflg = true;
 
         // Update the working variables
         eph[ieph][sv].A = eph[ieph][sv].sqrta * eph[ieph][sv].sqrta;
@@ -1705,7 +1705,7 @@ static int checkSatVisibility(ephem_t eph, gpstime_t g, double *xyz, double elvM
     double pos[3], vel[3], clk[3], los[3];
     double tmat[3][3];
 
-    if (eph.vflg != 1)
+    if (eph.vflg == false)
         return (-1); // Invalid
 
     xyz2llh(xyz, llh);
@@ -2281,7 +2281,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (sv = 0; sv < MAX_SAT; sv++) {
-        if (eph[0][sv].vflg == 1) {
+        if (eph[0][sv].vflg == true) {
             gmin = eph[0][sv].toc;
             tmin = eph[0][sv].t;
             break;
@@ -2297,7 +2297,7 @@ int main(int argc, char *argv[]) {
     tmax.m = 0;
     tmax.y = 0;
     for (sv = 0; sv < MAX_SAT; sv++) {
-        if (eph[neph - 1][sv].vflg == 1) {
+        if (eph[neph - 1][sv].vflg == true) {
             gmax = eph[neph - 1][sv].toc;
             tmax = eph[neph - 1][sv].t;
             break;
@@ -2326,7 +2326,7 @@ int main(int argc, char *argv[]) {
             // Overwrite the TOC and TOE to the scenario start time
             for (sv = 0; sv < MAX_SAT; sv++) {
                 for (i = 0; i < neph; i++) {
-                    if (eph[i][sv].vflg == 1) {
+                    if (eph[i][sv].vflg == true) {
                         gtmp = incGpsTime(eph[i][sv].toc, dsec);
                         gps2date(&gtmp, &ttmp);
                         eph[i][sv].toc = gtmp;
@@ -2364,7 +2364,7 @@ int main(int argc, char *argv[]) {
 
     for (i = 0; i < neph; i++) {
         for (sv = 0; sv < MAX_SAT; sv++) {
-            if (eph[i][sv].vflg == 1) {
+            if (eph[i][sv].vflg == true) {
                 dt = subGpsTime(g0, eph[i][sv].toc);
                 if (dt >= -SECONDS_IN_HOUR && dt < SECONDS_IN_HOUR) {
                     ieph = i;
@@ -2566,7 +2566,7 @@ int main(int argc, char *argv[]) {
             // Refresh ephemeris and subframes
             // Quick and dirty fix. Need more elegant way.
             for (sv = 0; sv < MAX_SAT; sv++) {
-                if (eph[ieph + 1][sv].vflg == 1) {
+                if (eph[ieph + 1][sv].vflg == true) {
                     dt = subGpsTime(eph[ieph + 1][sv].toc, grx);
                     if (dt < SECONDS_IN_HOUR) {
                         ieph++;
