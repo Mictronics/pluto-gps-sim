@@ -5,14 +5,10 @@ software-defined radio (SDR) platform [ADALM-Pluto](https://wiki.analog.com/univ
 
 Project based on [gps-sdr-sim](https://github.com/osqzss/gps-sdr-sim). Kudos to Takuji Ebinuma.
 
-### Generating the GPS signal file
+### Generating the GPS signal
+The user is able to assign a static location directly through the command line.
 
-A user-defined trajectory can be specified in either a CSV file, which contains 
-the Earth-centered Earth-fixed (ECEF) user positions, or an NMEA GGA stream.
-The sampling rate of the user motion has to be 10Hz.
-The user is also able to assign a static location directly through the command line.
-
-The user specifies the GPS satellite constellation through a GPS broadcast 
+The user also specifies the GPS satellite constellation through a GPS broadcast 
 ephemeris file. The daily GPS broadcast ephemeris file (brdc) is a merge of the
 individual site navigation files into one. The archive for the daily file is:
 
@@ -64,8 +60,6 @@ pluto-gps-sim [options]
 Options:
   -e <gps_nav>     RINEX navigation file for GPS ephemerides (required)
   -f               Pull actual RINEX navigation file from NASA FTP server
-  -u <user_motion> User motion file (dynamic mode)
-  -g <nmea_gga>    NMEA GGA stream (dynamic mode)
   -c <location>    ECEF X,Y,Z in meters (static mode) e.g. 3967283.15,1022538.18,4872414.48
   -l <location>    Lat,Lon,Hgt (static mode) e.g. 30.286502,120.032669,100
   -t <date,time>   Scenario start time YYYY/MM/DD,hh:mm:ss
@@ -79,15 +73,7 @@ Options:
   -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)
 ```
 
-The user motion can be specified in either dynamic or static mode:
-
-```
-> pluto-gps-sim -e brdc3540.14n -u circle.csv
-```
-
-```
-> pluto-gps-sim -e brdc3540.14n -g triumphv3.txt
-```
+Set static mode location:
 
 ```
 > pluto-gps-sim -e brdc3540.14n -l 30.286502,120.032669,100
