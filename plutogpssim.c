@@ -1932,7 +1932,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    while ((result = getopt(argc, argv, "e:f:u:g:c:l:s:T:t:i:v:A:B:U:N:?")) != -1) {
+    while ((result = getopt(argc, argv, "e:u:g:c:l:s:T:t:A:B:U:N:vfi?")) != -1) {
         switch (result) {
             case 'e':
                 navfile = optarg;
