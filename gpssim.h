@@ -1,8 +1,8 @@
 /**
- * This file is part of the gps-sdr-sim project at
- * https://github.com/osqzss/gps-sdr-sim.git
+ * This file is part of the pluto-gps-sim project at
+ * https://github.com/mictronics/pluto-gps-sim.git
  * 
- * Copyright © 2015-2018 Takuji Ebinuma
+ * Copyright © 2015-2018 Mictronics
  * Distributed under the MIT License.
  * 
  */
