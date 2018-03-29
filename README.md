@@ -5,6 +5,8 @@ software-defined radio (SDR) platform [ADALM-Pluto](https://wiki.analog.com/univ
 
 Project based on [gps-sdr-sim](https://github.com/osqzss/gps-sdr-sim). Kudos to Takuji Ebinuma.
 
+[Windows 32-bit version](https://github.com/Mictronics/pluto-gps-sim-win32)
+
 ### Generating the GPS signal
 The user is able to assign a static location directly through the command line.
 
