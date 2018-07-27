@@ -1,6 +1,6 @@
 # PLUTO-GPS-SIM
 
-PLUTO-GPS-SIM generates a GPS baseband signal IQ data stream, which is then transmitted by the 
+PLUTO-GPS-SIM generates a GPS baseband signal IQ data stream, which is then transmitted by the
 software-defined radio (SDR) platform [ADALM-Pluto](https://wiki.analog.com/university/tools/pluto).
 
 Project based on [gps-sdr-sim](https://github.com/osqzss/gps-sdr-sim). Kudos to Takuji Ebinuma.
@@ -10,14 +10,14 @@ Project based on [gps-sdr-sim](https://github.com/osqzss/gps-sdr-sim). Kudos to 
 ### Generating the GPS signal
 The user is able to assign a static location directly through the command line.
 
-The user also specifies the GPS satellite constellation through a GPS broadcast 
+The user also specifies the GPS satellite constellation through a GPS broadcast
 ephemeris file. The daily GPS broadcast ephemeris file (brdc) is a merge of the
 individual site navigation files into one. The archive for the daily file is:
 
 [ftp://cddis.gsfc.nasa.gov/gnss/data/daily/](ftp://cddis.gsfc.nasa.gov/gnss/data/daily/)
 
 These files are then used to generate the simulated pseudorange and
-Doppler for the GPS satellites in view. This simulated range data is 
+Doppler for the GPS satellites in view. This simulated range data is
 then used to generate the digitized I/Q samples for the GPS signal
 which are then feed into ADALM-Pluto SDR to transmit the GPS L1 frequency.
 
@@ -30,7 +30,7 @@ is selected.
 
 Build depends on libm, libpthread and libcurl4-openssl-dev.
 
-You will also need the latest build and install of libad9361-dev and libiio-dev. The Debian packages 
+You will also need the latest build and install of libad9361-dev and libiio-dev. The Debian packages
 libad9361-dev that is available up to Debian 9 (stretch) is outdated and missing a required function.
 So you have to build packages from source:
 ```
@@ -92,6 +92,11 @@ Set RF bandwidth:
 > pluto-gps-sim -e brdc3540.14n -B 3.0
 ```
 Default 3.0MHz. Applicable range 1.0MHz to 5.0MHz
+
+### Transmitting the samples
+
+The TX port of a particular SDR platform is connected to the GPS receiver
+under test through a DC block and a fixed 50-60dB attenuator.
 
 ### License
 
