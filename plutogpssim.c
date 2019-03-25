@@ -5,7 +5,7 @@
  * This file is part of the pluto-gps-sim project at
  * https://github.com/mictronics/pluto-gps-sim.git
  *
- * Copyright © 2018 Mictronics
+ * Copyright © 2019 Mictronics
  * Distributed under the MIT License.
  *
  */
@@ -1572,8 +1572,8 @@ static void usage(void) {
             "  -v               Show details about simulated channels\n"
             "  -A <attenuation> Set TX attenuation [dB] (default -20.0)\n"
             "  -B <bw>          Set RF bandwidth [MHz] (default 5.0)\n"
-            "  -u <uri>         ADALM-Pluto URI\n"
-            "  -n <network>     ADALM-Pluto network IP or hostname (default pluto.local)\n");
+            "  -U <uri>         ADALM-Pluto URI\n"
+            "  -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)\n");
 
     return;
 }
