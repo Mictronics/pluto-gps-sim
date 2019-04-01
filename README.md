@@ -33,17 +33,27 @@ Build depends on libm, libpthread and libcurl4-openssl-dev.
 You will also need the latest build and install of libad9361-dev and libiio-dev. The Debian packages
 libad9361-dev that is available up to Debian 9 (stretch) is outdated and missing a required function.
 So you have to build packages from source:
+
+The first step is to fetch the dependencies, which as of now is only libxml2. On a Debian-flavoured GNU/Linux distribution, like Ubuntu for instance:
 ```
-$ git clone https://github.com/analogdevicesinc/libad9361-iio.git
-$ cd libad9361-iio
+$ sudo apt-get install libxml2 libxml2-dev bison flex libcdk5-dev cmake
+```
+Depending on the backend (how you want to attach the IIO device), you may need at least one of:
+```
+$ sudo apt-get install libaio-dev libusb-1.0-0-dev libserialport-dev libxml2-dev libavahi-client-dev doxygen graphviz
+```
+Then build in this order:
+```
+$ git clone https://github.com/analogdevicesinc/libiio.git
+$ cd libiio
 $ cmake ./
 $ make
 $ sudo make install
 ```
 
 ```
-$ git clone https://github.com/analogdevicesinc/libiio.git
-$ cd libiio
+$ git clone https://github.com/analogdevicesinc/libad9361-iio.git
+$ cd libad9361-iio
 $ cmake ./
 $ make
 $ sudo make install
