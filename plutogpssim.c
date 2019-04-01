@@ -1891,8 +1891,8 @@ int main(int argc, char *argv[]) {
 
                     date2gps(&t0, &g0);
 
-                    break;
                 }
+                break;
             case 't':
                 sscanf(optarg, "%d/%d/%d,%d:%d:%lf", &t0.y, &t0.m, &t0.d, &t0.hh, &t0.mm, &t0.sec);
                 if (t0.y <= 1980 || t0.m < 1 || t0.m > 12 || t0.d < 1 || t0.d > 31 ||
