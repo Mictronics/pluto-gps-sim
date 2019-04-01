@@ -1985,7 +1985,9 @@ int main(int argc, char *argv[]) {
             fclose(ftp.stream);
 
         if (res == CURLE_OK) {
-            system("zcat " RINEX_FILE_NAME " > brdc.n");
+            if(system("zcat " RINEX_FILE_NAME " > brdc.n") != 0) {
+                fprintf(stderr, "ERROR: Unpacking RINEX file.\n");
+            }
         }
 
         free(url);
