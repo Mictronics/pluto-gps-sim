@@ -85,6 +85,16 @@ Options:
   -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)
 ```
 
+Pull actual RINEX navigation file from NASA FTP server
+```
+./pluto-gps-sim -f -e brdc.n -l 30.286502,120.032669,100
+```
+
+Set user motion mode:
+```
+> pluto-gps-sim -e brdc3540.14n -u circle.csv
+```
+
 Set static mode location:
 
 ```

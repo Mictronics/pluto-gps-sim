@@ -1996,12 +1996,12 @@ int main(int argc, char *argv[]) {
 
 		if (numd==-1)
 		{
-			fprintf(stderr, "ERROR: Failed to open user motion / NMEA GGA file.\n");
+			fprintf(stderr, "ERROR: Failed to open user motion file.\n");
 			exit(1);
 		}
 		else if (numd==0)
 		{
-			fprintf(stderr, "ERROR: Failed to read user motion / NMEA GGA data.\n");
+			fprintf(stderr, "ERROR: Failed to read user motion data.\n");
 			exit(1);
 		}
 
