@@ -1813,7 +1813,7 @@ int main(int argc, char *argv[]) {
     double delt;
     int isamp;
 
-    int numd, iumd = 0;
+    int numd = 0, iumd = 0;
     char umfile[MAX_CHAR];
     double xyz[USER_MOTION_SIZE][3];
     int staticLocationMode = true;
@@ -1892,6 +1892,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'u':
                 strcpy(umfile, optarg);
+                staticLocationMode = false;
                 break;
             case 'f':
                 use_ftp = true;
@@ -2386,7 +2387,7 @@ int main(int argc, char *argv[]) {
 
         // update postition index
         iumd++;
-        if(iumd > numd)
+        if(iumd >= numd)
         {
             iumd = 0;
         }
