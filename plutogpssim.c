@@ -2380,7 +2380,10 @@ int main(int argc, char *argv[]) {
             }
 
             // Update channel allocation
-            allocateChannel(chan, eph[ieph], ionoutc, grx, xyz[0], elvmask);
+            if (!staticLocationMode)
+                allocateChannel(chan, eph[ieph], ionoutc, grx, xyz[iumd], elvmask);
+            else
+                allocateChannel(chan, eph[ieph], ionoutc, grx, xyz[0], elvmask);
         }
         // Update receiver time
         grx = incGpsTime(grx, 0.1);
