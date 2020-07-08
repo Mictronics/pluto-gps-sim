@@ -1387,6 +1387,39 @@ static void computeCodePhase(channel_t *chan, range_t rho1, double dt) {
     return;
 }
 
+/*! \brief Read the list of user motions from the input file
+ *  \param[out] xyz Output array of ECEF vectors for user motion
+ *  \param[[in] filename File name of the text input file
+ *  \returns Number of user data motion records read, -1 on error
+ */
+static int readUserMotion(double xyz[USER_MOTION_SIZE][3], const char *filename)
+{
+	FILE *fp;
+	int numd;
+	char str[MAX_CHAR];
+	double t,x,y,z;
+
+	if (NULL==(fp=fopen(filename,"rt")))
+		return(-1);
+
+	for (numd=0; numd<USER_MOTION_SIZE; numd++)
+	{
+		if (fgets(str, MAX_CHAR, fp)==NULL)
+			break;
+
+		if (EOF==sscanf(str, "%lf,%lf,%lf,%lf", &t, &x, &y, &z)) // Read CSV line
+			break;
+
+		xyz[numd][0] = x;
+		xyz[numd][1] = y;
+		xyz[numd][2] = z;
+	}
+
+	fclose(fp);
+
+	return (numd);
+}
+
 static int generateNavMsg(gpstime_t g, channel_t *chan, int init) {
     int iwrd, isbf;
     gpstime_t g0;
@@ -1562,6 +1595,7 @@ static void usage(void) {
     fprintf(stderr, "Usage: pluto-gps-sim [options]\n"
             "Options:\n"
             "  -e <gps_nav>     RINEX navigation file for GPS ephemerides (required)\n"
+            "  -u <user_motion> User motion file (dynamic mode) 10Hz, Max %u points\n"
             "  -f               Pull actual RINEX navigation file from NASA FTP server\n"
             "  -c <location>    ECEF X,Y,Z in meters (static mode) e.g. 3967283.154,1022538.181,4872414.484\n"
             "  -l <location>    Lat,Lon,Hgt (static mode) e.g. 35.681298,139.766247,10.0\n"
@@ -1573,7 +1607,8 @@ static void usage(void) {
             "  -A <attenuation> Set TX attenuation [dB] (default -20.0)\n"
             "  -B <bw>          Set RF bandwidth [MHz] (default 5.0)\n"
             "  -U <uri>         ADALM-Pluto URI\n"
-            "  -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)\n");
+            "  -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)\n",
+            (unsigned int)USER_MOTION_SIZE);
 
     return;
 }
@@ -1778,7 +1813,10 @@ int main(int argc, char *argv[]) {
     double delt;
     int isamp;
 
-    double xyz[1][3];
+    int numd, iumd = 0;
+    char umfile[MAX_CHAR];
+    double xyz[USER_MOTION_SIZE][3];
+    int staticLocationMode = true;
 
     bool use_ftp = false;
     CURL *curl;
@@ -1811,6 +1849,7 @@ int main(int argc, char *argv[]) {
     ////////////////////////////////////////////////////////////
 
     // Default options
+    umfile[0] = 0;
     g0.week = -1; // Invalid start time
     verb = false;
     ionoutc.enable = true;
@@ -1850,6 +1889,9 @@ int main(int argc, char *argv[]) {
         switch (result) {
             case 'e':
                 navfile = optarg;
+                break;
+            case 'u':
+                strcpy(umfile, optarg);
                 break;
             case 'f':
                 use_ftp = true;
@@ -1945,8 +1987,30 @@ int main(int argc, char *argv[]) {
     // Receiver position
     ////////////////////////////////////////////////////////////
 
-    // Static geodetic coordinates input mode: "-l"
-    fprintf(stderr, "Using static location mode.\n");
+    if (!staticLocationMode)
+	{
+		// Read user motion file
+
+		numd = readUserMotion(xyz, umfile);
+
+		if (numd==-1)
+		{
+			fprintf(stderr, "ERROR: Failed to open user motion / NMEA GGA file.\n");
+			exit(1);
+		}
+		else if (numd==0)
+		{
+			fprintf(stderr, "ERROR: Failed to read user motion / NMEA GGA data.\n");
+			exit(1);
+		}
+
+        fprintf(stderr, "Using user motion mode.\n");
+	} 
+	else
+    {
+        // Static geodetic coordinates input mode: "-l"
+        fprintf(stderr, "Using static location mode.\n");
+    }
 
     /*
     fprintf(stderr, "xyz = %11.1f, %11.1f, %11.1f\n", xyz[0][0], xyz[0][1], xyz[0][2]);
@@ -2178,7 +2242,15 @@ int main(int argc, char *argv[]) {
                 sv = chan[i].prn - 1;
 
                 // Current pseudorange
-                computeRange(&rho, eph[ieph][sv], &ionoutc, grx, xyz[0]);
+                if (!staticLocationMode)
+                {
+                    computeRange(&rho, eph[ieph][sv], &ionoutc, grx, xyz[iumd]);
+                }
+				else
+                {
+                    computeRange(&rho, eph[ieph][sv], &ionoutc, grx, xyz[0]);
+                }
+                
 
                 chan[i].azel[0] = rho.azel[0];
                 chan[i].azel[1] = rho.azel[1];
@@ -2311,6 +2383,13 @@ int main(int argc, char *argv[]) {
         }
         // Update receiver time
         grx = incGpsTime(grx, 0.1);
+
+        // update postition index
+        iumd++;
+        if(iumd > numd)
+        {
+            iumd = 0;
+        }
     }
 
 exit_main_thread:
