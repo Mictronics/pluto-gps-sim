@@ -12,9 +12,7 @@ The user is able to assign a static location directly through the command line.
 
 The user also specifies the GPS satellite constellation through a GPS broadcast
 ephemeris file. The daily GPS broadcast ephemeris file (brdc) is a merge of the
-individual site navigation files into one. The archive for the daily file is:
-
-[ftp://cddis.gsfc.nasa.gov/gnss/data/daily/](ftp://cddis.gsfc.nasa.gov/gnss/data/daily/)
+individual site navigation files into one. 
 
 These files are then used to generate the simulated pseudorange and
 Doppler for the GPS satellites in view. This simulated range data is
@@ -24,6 +22,33 @@ which are then feed into ADALM-Pluto SDR to transmit the GPS L1 frequency.
 The simulation start time can be specified if the corresponding set of ephemerides
 is available. Otherwise the first time of ephemeris in the RINEX navigation file
 is selected.
+
+### Ephemeris files
+
+NASA CDDIS anonymous ftp service has been discontinued on October 31, 2020.
+
+The new way to get ephemeris data is as follows:
+
+Register an account with https://urs.earthdata.nasa.gov/ (There is no way around this step).
+
+Create a file called .netrc with the following format.
+machine urs.earthdata.nasa.gov login <username> password <password> where <username> and <password> are the values you set when you created your Earthdata login account. Don't forget to sudo chmod 004 .netrc so that no one can read your file and get your username and password.
+
+You can automate with the process with following script.
+
+```
+#!/bin/sh
+day=$(date +%j)
+year=$(date +%Y)
+yr=$(date +%y)
+
+curl -c /tmp/cookie -n -L -o "brdc""$day""0.$yr""n.Z" "https://cddis.gsfc.nasa.gov/archive/gnss/data/daily/$year""/brdc/brdc""$day""0.$yr""n.Z"
+
+uncompress "brdc""$day""0.$yr""n.Z"
+echo "brdc""$day""0.$yr""n.Z"
+```
+
+The .netrc file along with the -n flag allows curl to automatically authenticate when attempting to retrieve the file.
 
 ### Build instructions
 #### Dependencies
