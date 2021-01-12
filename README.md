@@ -3,16 +3,15 @@
 PLUTO-GPS-SIM generates a GPS baseband signal IQ data stream, which is then transmitted by the
 software-defined radio (SDR) platform [ADALM-Pluto](https://wiki.analog.com/university/tools/pluto).
 
-Project based on [gps-sdr-sim](https://github.com/osqzss/gps-sdr-sim). Kudos to Takuji Ebinuma.
-
-[Windows 32-bit version](https://github.com/Mictronics/pluto-gps-sim-win32)
+Project based on [gps-sdr-sim](https://github.com/osqzss/gps-sdr-sim). Credits to Takuji Ebinuma.
 
 ### Generating the GPS signal
+
 The user is able to assign a static location directly through the command line.
 
 The user also specifies the GPS satellite constellation through a GPS broadcast
 ephemeris file. The daily GPS broadcast ephemeris file (brdc) is a merge of the
-individual site navigation files into one. 
+individual site navigation files into one.
 
 These files are then used to generate the simulated pseudorange and
 Doppler for the GPS satellites in view. This simulated range data is
@@ -22,6 +21,13 @@ which are then feed into ADALM-Pluto SDR to transmit the GPS L1 frequency.
 The simulation start time can be specified if the corresponding set of ephemerides
 is available. Otherwise the first time of ephemeris in the RINEX navigation file
 is selected.
+
+** Note **
+The ADLAM-Pluto SDR internal oscillator is not precise (frequency offset) and stable (temperature drift) enough
+for GPS signal generation.
+
+Do not run this code without Pluto oscillator modification, either by TCXO or more expensive (but highest precision) OCXO.
+Search for [adlam pluto tcxo](https://duckduckgo.com/?q=adlam+pluto+tcxo)
 
 ### Ephemeris files
 
@@ -51,6 +57,7 @@ echo "brdc""$day""0.$yr""n.Z"
 The .netrc file along with the -n flag allows curl to automatically authenticate when attempting to retrieve the file.
 
 ### Build instructions
+
 #### Dependencies
 
 Build depends on libm, libpthread and libcurl4-openssl-dev.
@@ -60,14 +67,19 @@ libad9361-dev that is available up to Debian 9 (stretch) is outdated and missing
 So you have to build packages from source:
 
 The first step is to fetch the dependencies, which as of now is only libxml2. On a Debian-flavoured GNU/Linux distribution, like Ubuntu for instance:
+
 ```
 $ sudo apt-get install libxml2 libxml2-dev bison flex libcdk5-dev cmake
 ```
+
 Depending on the backend (how you want to attach the IIO device), you may need at least one of:
+
 ```
 $ sudo apt-get install libaio-dev libusb-1.0-0-dev libserialport-dev libxml2-dev libavahi-client-dev doxygen graphviz
 ```
+
 Then build in this order:
+
 ```
 $ git clone https://github.com/analogdevicesinc/libiio.git
 $ cd libiio
@@ -85,6 +97,7 @@ $ sudo make install
 ```
 
 #### Building under Linux with GCC
+
 ```
 $ git clone https://github.com/mictronics/pluto-gps-sim
 $ cd pluto-gps-sim
@@ -92,7 +105,8 @@ $ make all
 ```
 
 ### Usage
-```
+
+````
 pluto-gps-sim [options]
 Options:
   -e <gps_nav>     RINEX navigation file for GPS ephemerides (required)
@@ -108,7 +122,7 @@ Options:
   -B <bw>          Set RF bandwidth [MHz] (default 5.0)
   -U <uri>         ADALM-Pluto URI (eg. usb:1.2.5)
   -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)
-```
+````
 
 Set static mode location:
 
@@ -117,15 +131,19 @@ Set static mode location:
 ```
 
 Set TX attenuation:
+
 ```
 > pluto-gps-sim -e brdc3540.14n -A -30.0
 ```
+
 Default -20.0dB. Applicable range 0.0dB to -80.0dB in 0.25dB steps.
 
 Set RF bandwidth:
+
 ```
 > pluto-gps-sim -e brdc3540.14n -B 3.0
 ```
+
 Default 3.0MHz. Applicable range 1.0MHz to 5.0MHz
 
 ### Transmitting the samples
