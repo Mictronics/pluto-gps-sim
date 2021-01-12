@@ -22,8 +22,9 @@ The simulation start time can be specified if the corresponding set of ephemerid
 is available. Otherwise the first time of ephemeris in the RINEX navigation file
 is selected.
 
-** Note **
-The ADLAM-Pluto SDR internal oscillator is not precise (frequency offset) and stable (temperature drift) enough
+__Note__
+
+The ADLAM-Pluto SDR internal oscillator is not precise enough (frequency offset) and stable (temperature drift)
 for GPS signal generation.
 
 Do not run this code without Pluto oscillator modification, either by TCXO or more expensive (but highest precision) OCXO.
