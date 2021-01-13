@@ -824,7 +824,11 @@ static int replaceExpDesignator(char *str, int len) {
     int i, n = 0;
 
     for (i = 0; i < len; i++) {
-        if (str[i] == 'D') {
+        if (str[i] == 0) {
+            break;
+        }
+
+        if (str[i] == 'D' || str[i] == 'd') {
             n++;
             str[i] = 'E';
         }
@@ -876,6 +880,7 @@ static int readRinex2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
     int sv;
     char str[MAX_CHAR];
     char tmp[20];
+    double ver = 0.0;
 
     datetime_t t;
     gpstime_t g;
@@ -897,9 +902,25 @@ static int readRinex2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
         if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
-        if (strncmp(str + 60, "END OF HEADER", 13) == 0)
+        if (strncmp(str + 60, "COMMENT", 7) == 0) {
+            continue;
+        } else if (strncmp(str + 60, "END OF HEADER", 13) == 0) {
             break;
-        else if (strncmp(str + 60, "ION ALPHA", 9) == 0) {
+        } else if (strncmp(str + 60, "RINEX VERSION / TYPE", 20) == 0) {
+            strncpy(tmp, str, 9);
+            tmp[9] = 0;
+            replaceExpDesignator(tmp, 9);
+            ver = atof(tmp);
+            if (ver > 3.0) {
+                gzclose(fp);
+                return -2;
+            }
+
+            if (str[20] != 'N') {
+                gzclose(fp);
+                return -3;
+            }
+        } else if (strncmp(str + 60, "ION ALPHA", 9) == 0) {
             strncpy(tmp, str + 2, 12);
             tmp[12] = 0;
             replaceExpDesignator(tmp, 12);
@@ -971,8 +992,8 @@ static int readRinex2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
 
             flags |= 0x1 << 3;
         } else if (strncmp(str + 60, "PGM / RUN BY / DATE", 19) == 0) {
-            strncpy(rinex_date, str + 40, 15);
-            rinex_date[15] = 0;
+            strncpy(rinex_date, str + 40, 20);
+            rinex_date[20] = 0;
         }
     }
 
