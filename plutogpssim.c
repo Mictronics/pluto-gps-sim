@@ -860,13 +860,13 @@ static gpstime_t incGpsTime(gpstime_t g0, double dt) {
     return (g1);
 }
 
-/*! \brief Read Ephemeris data from the RINEX Navigation file */
+/*! \brief Read Ephemeris data from the RINEX v2 Navigation file */
 
 /*  \param[out] eph Array of Output SV ephemeris data
  *  \param[in] fname File name of the RINEX file
  *  \returns Number of sets of ephemerides in the file
  */
-static int readRinexNavAll(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fname) {
+static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fname) {
     FILE *fp;
     int ieph;
 
@@ -1995,7 +1995,7 @@ int main(int argc, char *argv[]) {
         unlink(RINEX_FILE_NAME);
     }
 
-    neph = readRinexNavAll(eph, &ionoutc, navfile);
+    neph = readRinex_v2(eph, &ionoutc, navfile);
 
     if (neph == 0) {
         fprintf(stderr, "ERROR: No ephemeris available.\n");
