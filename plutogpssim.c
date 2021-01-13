@@ -27,12 +27,13 @@
 #include <mach/thread_act.h>
 #include <mach/mach_port.h>
 #endif
-#include "gpssim.h"
+#include "plutogpssim.h"
 
-#define RINEX_FILE_NAME "/tmp/rinex.dat"
-#define RINEX_FTP_URL "ftp://cddis.gsfc.nasa.gov/gnss/data/daily/"
-//#define RINEX_FTP_FOLDER "%Y/%j/%yn/brdc%j0.%yn.Z"
-#define RINEX_FTP_FOLDER "%Y/brdc/brdc%j0.%yn.Z"
+#define RINEX_FILE_NAME "/tmp/rinex.gz"
+#define RINEX_FTP_URL "ftp://igs.bkg.bund.de/IGS/"
+#define RINEX2_SUBFOLDER "nrt"
+#define RINEX3_SUBFOLDER "nrt3"
+#define RINEX_FTP_FILE "%s/%03i/%02i/%4s%03i%c.%02in.gz"
 
 #define NOTUSED(V) ((void) V)
 #define MHZ(x) ((long long)(x*1000000.0 + .5))
@@ -41,6 +42,7 @@
 #define BUFFER_SIZE (NUM_SAMPLES * 2 * sizeof(int16_t))
 
 #if defined(__MACH__) || defined(__APPLE__)
+
 typedef struct cpu_set {
     uint32_t count;
 } cpu_set_t;
@@ -1578,10 +1580,9 @@ static void usage(void) {
     return;
 }
 
-static void handle_sig(int sig)
-{
+static void handle_sig(int sig) {
     NOTUSED(sig);
-    signal(SIGINT, SIG_DFL);  // reset signal handler - bit extra safety
+    signal(SIGINT, SIG_DFL); // reset signal handler - bit extra safety
     pthread_mutex_unlock(&plutotx.data_mutex);
     plutotx.exit = true;
     pthread_join(pluto_thread, NULL); /* Wait on Pluto TX thread exit */
@@ -1590,6 +1591,7 @@ static void handle_sig(int sig)
 }
 
 #if defined(__MACH__) || defined(__APPLE__)
+
 static int pthread_setaffinity_np(pthread_t thread, size_t cpu_size,
         cpu_set_t *cpu_set) {
     thread_port_t mach_thread;
@@ -1608,21 +1610,21 @@ static int pthread_setaffinity_np(pthread_t thread, size_t cpu_size,
 #endif
 
 // Set affinity of calling thread to specific core on a multi-core CPU
+
 static int thread_to_core(int core_id) {
-   int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
-   if (core_id < 0 || core_id >= num_cores)
-      return EINVAL;
+    int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    if (core_id < 0 || core_id >= num_cores)
+        return EINVAL;
 
-   cpu_set_t cpuset;
-   CPU_ZERO(&cpuset);
-   CPU_SET(core_id, &cpuset);
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core_id, &cpuset);
 
-   pthread_t current_thread = pthread_self();
-   return pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+    pthread_t current_thread = pthread_self();
+    return pthread_setaffinity_np(current_thread, sizeof (cpu_set_t), &cpuset);
 }
 
-void *pluto_tx_thread_ep(void *arg)
-{
+void *pluto_tx_thread_ep(void *arg) {
     NOTUSED(arg);
     char buf[1024];
     struct iio_context *ctx = NULL;
@@ -1638,7 +1640,7 @@ void *pluto_tx_thread_ep(void *arg)
     // Create IIO context to access ADALM-Pluto
     ctx = iio_create_default_context();
     if (ctx == NULL) {
-        if(plutotx.hostname != NULL) {
+        if (plutotx.hostname != NULL) {
             ctx = iio_create_network_context(plutotx.hostname);
         } else if (plutotx.uri != NULL) {
             ctx = iio_create_context_from_uri(plutotx.uri);
@@ -1648,7 +1650,7 @@ void *pluto_tx_thread_ep(void *arg)
     }
 
     if (ctx == NULL) {
-        iio_strerror(errno, buf, sizeof(buf));
+        iio_strerror(errno, buf, sizeof (buf));
         fprintf(stderr, "Failed creating IIO context: %s\n", buf);
         goto pluto_thread_exit;
     }
@@ -1661,7 +1663,7 @@ void *pluto_tx_thread_ep(void *arg)
 
     tx = iio_context_find_device(ctx, "cf-ad9361-dds-core-lpc");
     if (tx == NULL) {
-        iio_strerror(errno, buf, sizeof(buf));
+        iio_strerror(errno, buf, sizeof (buf));
         fprintf(stderr, "Error opening PLUTOSDR TX device: %s\n", buf);
         goto pluto_thread_exit;
     }
@@ -1677,12 +1679,12 @@ void *pluto_tx_thread_ep(void *arg)
     iio_channel_attr_write_double(phy_chn, "hardwaregain", plutotx.gain_db);
 
     iio_channel_attr_write_bool(
-        iio_device_find_channel(phydev, "altvoltage0", true)
-        , "powerdown", true); // Turn OFF RX LO
+            iio_device_find_channel(phydev, "altvoltage0", true)
+            , "powerdown", true); // Turn OFF RX LO
 
     iio_channel_attr_write_longlong(
-        iio_device_find_channel(phydev, "altvoltage1", true)
-        , "frequency", plutotx.lo_hz); // Set TX LO frequency
+            iio_device_find_channel(phydev, "altvoltage1", true)
+            , "frequency", plutotx.lo_hz); // Set TX LO frequency
 
     tx0_i = iio_device_find_channel(tx, "voltage0", true);
     if (!tx0_i)
@@ -1704,11 +1706,11 @@ void *pluto_tx_thread_ep(void *arg)
     }
 
     iio_channel_attr_write_bool(
-        iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
-        , "powerdown", false); // Turn ON TX LO
+            iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
+            , "powerdown", false); // Turn ON TX LO
 
     int32_t ntx = 0;
-    char *ptx_buffer = (char *)iio_buffer_start(tx_buffer);
+    char *ptx_buffer = (char *) iio_buffer_start(tx_buffer);
 
     while (!plutotx.exit) {
         pthread_mutex_lock(&plutotx.data_mutex);
@@ -1718,22 +1720,31 @@ void *pluto_tx_thread_ep(void *arg)
         // Schedule TX buffer
         ntx = iio_buffer_push(tx_buffer);
         if (ntx < 0) {
-            fprintf(stderr,"Error pushing buf %d\n", (int) ntx);
-            break;;
+            fprintf(stderr, "Error pushing buf %d\n", (int) ntx);
+            break;
+            ;
         }
     }
 
 pluto_thread_exit:
     if (ctx) {
         iio_channel_attr_write_bool(
-            iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
-            , "powerdown", true); // Turn OFF TX LO
+                iio_device_find_channel(iio_context_find_device(ctx, "ad9361-phy"), "altvoltage1", true)
+                , "powerdown", true); // Turn OFF TX LO
     }
 
-    if (tx_buffer) { iio_buffer_destroy(tx_buffer); }
-    if (tx0_i) { iio_channel_disable(tx0_i); }
-    if (tx0_q) { iio_channel_disable(tx0_q); }
-    if (ctx) { iio_context_destroy(ctx); }
+    if (tx_buffer) {
+        iio_buffer_destroy(tx_buffer);
+    }
+    if (tx0_i) {
+        iio_channel_disable(tx0_i);
+    }
+    if (tx0_q) {
+        iio_channel_disable(tx0_q);
+    }
+    if (ctx) {
+        iio_context_destroy(ctx);
+    }
 
     // Wake the main thread (if it's still waiting)
     pthread_mutex_lock(&plutotx.data_mutex);
@@ -1747,16 +1758,15 @@ pluto_thread_exit:
 #endif
 }
 
-static size_t fwrite_rinex(void *buffer, size_t size, size_t nmemb, void *stream)
-{
-  struct ftp_file *out = (struct ftp_file *)stream;
-  if(out && !out->stream) {
-    /* open file for writing */
-    out->stream = fopen(out->filename, "wb");
-    if(!out->stream)
-      return -1; /* failure, can't open file to write */
-  }
-  return fwrite(buffer, size, nmemb, out->stream);
+static size_t fwrite_rinex(void *buffer, size_t size, size_t nmemb, void *stream) {
+    struct ftp_file *out = (struct ftp_file *) stream;
+    if (out && !out->stream) {
+        /* open file for writing */
+        out->stream = fopen(out->filename, "wb");
+        if (!out->stream)
+            return -1; /* failure, can't open file to write */
+    }
+    return fwrite(buffer, size, nmemb, out->stream);
 }
 
 int main(int argc, char *argv[]) {
@@ -1867,7 +1877,7 @@ int main(int argc, char *argv[]) {
                 llh2xyz(llh, xyz[0]); // Convert llh to xyz
                 break;
             case 's':
-                plutotx.fs_hz = (long long)atoi(optarg);
+                plutotx.fs_hz = (long long) atoi(optarg);
                 if (plutotx.fs_hz < MHZ(1.0)) {
                     fprintf(stderr, "ERROR: Invalid sampling frequency.\n");
                     exit(1);
@@ -1911,13 +1921,13 @@ int main(int argc, char *argv[]) {
                 break;
             case 'A':
                 plutotx.gain_db = atof(optarg);
-                if(plutotx.gain_db > 0.0) plutotx.gain_db = 0.0;
-                if(plutotx.gain_db < -80.0) plutotx.gain_db = -80.0;
+                if (plutotx.gain_db > 0.0) plutotx.gain_db = 0.0;
+                if (plutotx.gain_db < -80.0) plutotx.gain_db = -80.0;
                 break;
             case 'B':
                 plutotx.bw_hz = MHZ(atof(optarg));
-                if(plutotx.bw_hz > MHZ(5.0)) plutotx.bw_hz = MHZ(5.0);
-                if(plutotx.bw_hz < MHZ(1.0)) plutotx.bw_hz = MHZ(1.0);
+                if (plutotx.bw_hz > MHZ(5.0)) plutotx.bw_hz = MHZ(5.0);
+                if (plutotx.bw_hz < MHZ(1.0)) plutotx.bw_hz = MHZ(1.0);
                 break;
             case 'U':
                 plutotx.uri = optarg;
@@ -1955,11 +1965,19 @@ int main(int argc, char *argv[]) {
     ////////////////////////////////////////////////////////////
     // Read ephemeris
     ////////////////////////////////////////////////////////////
-    if(use_ftp) {
+    if (use_ftp) {
         time_t t = time(NULL);
-        struct tm *tm = localtime(&t);
+        struct tm *tm = gmtime(&t);
         char* url = malloc(NAME_MAX);
-        strftime(url, NAME_MAX, RINEX_FTP_URL RINEX_FTP_FOLDER, tm);
+        // We fetch data from previous hour because the actual hour is still in progress
+        tm->tm_hour -= 1;
+        if (tm->tm_hour < 0) {
+            tm->tm_hour = 23;
+        }
+
+        // Compose FTP URL
+        snprintf(url, NAME_MAX, RINEX_FTP_URL RINEX_FTP_FILE, (0) ? RINEX3_SUBFOLDER : RINEX2_SUBFOLDER,
+                tm->tm_yday + 1, tm->tm_hour, stations_v2[8].id_v2, tm->tm_yday + 1, 'a' + tm->tm_hour, tm->tm_year - 100);
 
         curl_global_init(CURL_GLOBAL_DEFAULT);
         curl = curl_easy_init();
@@ -1968,7 +1986,7 @@ int main(int argc, char *argv[]) {
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite_rinex);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ftp);
             curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_NONE);
-            if(verb) {
+            if (verb) {
                 curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
             } else {
                 curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
@@ -1985,7 +2003,7 @@ int main(int argc, char *argv[]) {
             fclose(ftp.stream);
 
         if (res == CURLE_OK) {
-            if(system("zcat " RINEX_FILE_NAME " > brdc.n") != 0) {
+            if (system("zcat " RINEX_FILE_NAME " > brdc.n") != 0) {
                 fprintf(stderr, "ERROR: Unpacking RINEX file.\n");
             }
         }
@@ -2086,8 +2104,8 @@ int main(int argc, char *argv[]) {
         t0 = tmin;
     }
 
-    fprintf(stderr,"Gain: %.1fdB\n", plutotx.gain_db);
-    fprintf(stderr,"RINEX date = %s\n", rinex_date);
+    fprintf(stderr, "Gain: %.1fdB\n", plutotx.gain_db);
+    fprintf(stderr, "RINEX date = %s\n", rinex_date);
     fprintf(stderr, "Start time = %4d/%02d/%02d,%02d:%02d:%02.0f (%d:%.0f)\n",
             t0.y, t0.m, t0.d, t0.hh, t0.mm, t0.sec, g0.week, g0.sec);
 
@@ -2170,7 +2188,7 @@ int main(int argc, char *argv[]) {
     // Update receiver time
     grx = incGpsTime(grx, 0.1);
 
-    while(!plutotx.exit) {
+    while (!plutotx.exit) {
         for (i = 0; i < MAX_CHAN; i++) {
             if (chan[i].prn > 0) {
                 // Refresh code phase and data bit counters
@@ -2320,6 +2338,8 @@ exit_main_thread:
     pthread_mutex_destroy(&plutotx.data_mutex);
 
     // Free I/Q buffers
-    if(iq_buff) { free(iq_buff); }
+    if (iq_buff) {
+        free(iq_buff);
+    }
     return (0);
 }
