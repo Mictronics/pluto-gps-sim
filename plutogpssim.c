@@ -22,6 +22,7 @@
 #include <curl/curl.h>
 #include <iio.h>
 #include <ad9361.h>
+#include <zlib.h>
 #if defined(__MACH__) || defined(__APPLE__)
 #include <mach/mach_init.h>
 #include <mach/thread_act.h>
@@ -29,7 +30,7 @@
 #endif
 #include "plutogpssim.h"
 
-#define RINEX_FILE_NAME "/tmp/rinex.gz"
+#define RINEX_FILE_NAME "rinex.gz"
 #define RINEX_FTP_URL "ftp://igs.bkg.bund.de/IGS/"
 #define RINEX2_SUBFOLDER "nrt"
 #define RINEX3_SUBFOLDER "nrt3"
@@ -868,8 +869,8 @@ static gpstime_t incGpsTime(gpstime_t g0, double dt) {
  *  \param[in] fname File name of the RINEX file
  *  \returns Number of sets of ephemerides in the file
  */
-static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fname) {
-    FILE *fp;
+static int readRinex2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fname) {
+    struct gzFile_s *fp;
     int ieph;
 
     int sv;
@@ -883,7 +884,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
 
     int flags = 0x0;
 
-    if (NULL == (fp = fopen(fname, "rt")))
+    if (NULL == (fp = gzopen(fname, "rt")))
         return (-1);
 
     // Clear valid flag
@@ -893,7 +894,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
 
     // Read header lines
     while (1) {
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         if (strncmp(str + 60, "END OF HEADER", 13) == 0)
@@ -984,7 +985,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
     ieph = 0;
 
     while (1) {
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         // PRN
@@ -1055,7 +1056,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
         eph[ieph][sv].af2 = atof(tmp);
 
         // BROADCAST ORBIT - 1
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         strncpy(tmp, str + 3, 19);
@@ -1079,7 +1080,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
         eph[ieph][sv].m0 = atof(tmp);
 
         // BROADCAST ORBIT - 2
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         strncpy(tmp, str + 3, 19);
@@ -1103,7 +1104,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
         eph[ieph][sv].sqrta = atof(tmp);
 
         // BROADCAST ORBIT - 3
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         strncpy(tmp, str + 3, 19);
@@ -1127,7 +1128,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
         eph[ieph][sv].cis = atof(tmp);
 
         // BROADCAST ORBIT - 4
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         strncpy(tmp, str + 3, 19);
@@ -1151,7 +1152,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
         eph[ieph][sv].omgdot = atof(tmp);
 
         // BROADCAST ORBIT - 5
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         strncpy(tmp, str + 3, 19);
@@ -1170,7 +1171,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
         eph[ieph][sv].toe.week = (int) atof(tmp);
 
         // BROADCAST ORBIT - 6
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         strncpy(tmp, str + 22, 19);
@@ -1191,7 +1192,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
         eph[ieph][sv].iodc = (int) atof(tmp);
 
         // BROADCAST ORBIT - 7
-        if (NULL == fgets(str, MAX_CHAR, fp))
+        if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
 
         // Set valid flag
@@ -1204,7 +1205,7 @@ static int readRinex_v2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *
         eph[ieph][sv].omgkdot = eph[ieph][sv].omgdot - OMEGA_EARTH;
     }
 
-    fclose(fp);
+    gzclose(fp);
 
     if (g0.week >= 0)
         ieph += 1; // Number of sets of ephemerides
@@ -2002,18 +2003,11 @@ int main(int argc, char *argv[]) {
         if (ftp.stream)
             fclose(ftp.stream);
 
-        if (res == CURLE_OK) {
-            if (system("zcat " RINEX_FILE_NAME " > brdc.n") != 0) {
-                fprintf(stderr, "ERROR: Unpacking RINEX file.\n");
-            }
-        }
-
         free(url);
         curl_global_cleanup();
-        unlink(RINEX_FILE_NAME);
     }
 
-    neph = readRinex_v2(eph, &ionoutc, navfile);
+    neph = readRinex2(eph, &ionoutc, navfile);
 
     if (neph == 0) {
         fprintf(stderr, "ERROR: No ephemeris available.\n");
