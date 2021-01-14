@@ -30,10 +30,11 @@
 #endif
 #include "plutogpssim.h"
 
-#define RINEX_FILE_NAME "rinex.gz"
+#define RINEX2_FILE_NAME "rinex2.gz"
+#define RINEX3_FILE_NAME "rinex3.gz"
 #define RINEX_FTP_URL "ftp://igs.bkg.bund.de/IGS/"
 #define RINEX2_SUBFOLDER "nrt"
-#define RINEX3_SUBFOLDER "nrt3"
+#define RINEX3_SUBFOLDER "nrt_v3"
 #define RINEX_FTP_FILE "%s/%03i/%02i/%4s%03i%c.%02in.gz"
 
 #define NOTUSED(V) ((void) V)
@@ -1410,7 +1411,7 @@ static int readRinex3(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
         tmp[2] = 0;
         t.mm = atoi(tmp);
 
-        strncpy(tmp, str + 21, 4);
+        strncpy(tmp, str + 21, 2);
         tmp[2] = 0;
         t.sec = atof(tmp);
 
@@ -2195,7 +2196,7 @@ int main(int argc, char *argv[]) {
     CURL *curl;
     CURLcode res = CURLE_GOT_NOTHING;
     struct ftp_file ftp = {
-        RINEX_FILE_NAME,
+        RINEX2_FILE_NAME,
         NULL
     };
 
@@ -2264,6 +2265,7 @@ int main(int argc, char *argv[]) {
                 break;
             case '3':
                 use_rinex3 = true;
+                ftp.filename = RINEX3_FILE_NAME;
                 break;
             case 'f':
                 use_ftp = true;
