@@ -1076,7 +1076,7 @@ static int readRinex2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
         tmp[19] = 0;
         replaceExpDesignator(tmp, 19);
         eph[ieph][sv].af2 = atof(tmp);
-
+        
         // BROADCAST ORBIT - 1
         if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
@@ -1413,7 +1413,7 @@ static int readRinex3(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
 
         strncpy(tmp, str + 21, 2);
         tmp[2] = 0;
-        t.sec = atof(tmp);
+        t.sec = (double)atoi(tmp);
 
         date2gps(&t, &g);
 
@@ -1430,7 +1430,7 @@ static int readRinex3(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
             if (ieph >= EPHEM_ARRAY_SIZE)
                 break;
         }
-
+        
         // Date and time
         eph[ieph][sv].t = t;
 
@@ -1451,7 +1451,7 @@ static int readRinex3(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
         tmp[19] = 0;
         replaceExpDesignator(tmp, 19);
         eph[ieph][sv].af2 = atof(tmp);
-
+        
         // BROADCAST ORBIT - 1
         if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
@@ -2375,15 +2375,20 @@ int main(int argc, char *argv[]) {
         time_t t = time(NULL);
         struct tm *tm = gmtime(&t);
         char* url = malloc(NAME_MAX);
+        const char *station = stations_v2[25].id_v2;
         // We fetch data from previous hour because the actual hour is still in progress
         tm->tm_hour -= 1;
         if (tm->tm_hour < 0) {
             tm->tm_hour = 23;
         }
 
+        if(use_rinex3) {
+            station = stations_v3[0].id_v2;
+        }
+        
         // Compose FTP URL
         snprintf(url, NAME_MAX, RINEX_FTP_URL RINEX_FTP_FILE, (use_rinex3) ? RINEX3_SUBFOLDER : RINEX2_SUBFOLDER,
-                tm->tm_yday + 1, tm->tm_hour, stations_v2[8].id_v2, tm->tm_yday + 1, 'a' + tm->tm_hour, tm->tm_year - 100);
+                tm->tm_yday + 1, tm->tm_hour, station, tm->tm_yday + 1, 'a' + tm->tm_hour, tm->tm_year - 100);
 
         curl_global_init(CURL_GLOBAL_DEFAULT);
         curl = curl_easy_init();
@@ -2400,9 +2405,6 @@ int main(int argc, char *argv[]) {
             curl_easy_setopt(curl, CURLOPT_USERPWD, "anonymous:anonymous");
             res = curl_easy_perform(curl);
             curl_easy_cleanup(curl);
-            if (res != CURLE_OK) {
-                fprintf(stderr, "Curl error: %d\n", res);
-            }
         }
 
         if (ftp.stream)
@@ -2410,6 +2412,11 @@ int main(int argc, char *argv[]) {
 
         free(url);
         curl_global_cleanup();
+        
+        if (res != CURLE_OK) {
+            fprintf(stderr, "Curl error: %d\n", res);
+            exit(1);
+        }
     }
 
     if (use_rinex3) {
