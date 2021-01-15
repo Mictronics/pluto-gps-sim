@@ -24,7 +24,7 @@ In addition a 3.3V linear regulator and two capacitors are required. In fact the
 So we have to convert down from 5V USB supply. The linear voltage regulator is a LT1117-3.3 in this modification. But any other will do as long as
 it can handle the power/current requirements.
 
-__The OCXO requires up to 3W power supply, hence up to 1A@3.3V__
+__The OCXO requires up to 3W power supply, hence up to 1A @ 3.3V__
 
 My measurements on two units showing 680mA drawn from 5V on power up for few seconds when the OCXO initally heats up. Current then drops down to
 ~170mA depending on enviroment and Pluto internal temperature. The current drawn decreases with raising temperature and vice versa.
@@ -51,7 +51,7 @@ Example modification. The LT1117-3.3 requires a small heat sink.
 
 ## Schematic
 
-See [pluto-ocxo_mod_schematic.pdf](pluto-ocxo_mod_schematic.pdf) for details.
+See [pluto_ocxo_mod_schematic.pdf](pluto_ocxo_mod_schematic.pdf) for details.
 
 ## Calibration
 
@@ -67,9 +67,11 @@ Step by step:
 2. Set enviroment variable: `fw_setenv xo_correction 40000000`
 3. `reboot` or cycle Pluto power. 
 
+All environment variables can be printed with `fw_printenv`.
+
 In case you have a precise measurement tool, for example a spectrum analyzer, then you can calibrate your Pluto at the desired operating
-frequency and fine tune the value for xo_correction. In that case, wait at least 30min, keep the Pluto powered on during that time, to heat up and stabilize 
-the entire unit.
+frequency and fine tune the value for xo_correction. In that case, wait at least 30min, keep the Pluto powered on during that time, to heat up
+and temperature stabilize the entire unit.
 
 __Note__
 
