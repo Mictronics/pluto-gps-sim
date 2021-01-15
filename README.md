@@ -111,6 +111,7 @@ $ make all
 pluto-gps-sim [options]
 Options:
   -e <gps_nav>     RINEX navigation file for GPS ephemerides (required)
+  -3               Use RINEX version 3 format
   -f               Pull actual RINEX navigation file from NASA FTP server
   -c <location>    ECEF X,Y,Z in meters (static mode) e.g. 3967283.15,1022538.18,4872414.48
   -l <location>    Lat,Lon,Hgt (static mode) e.g. 30.286502,120.032669,100
