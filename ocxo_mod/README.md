@@ -69,6 +69,15 @@ Step by step:
 
 All environment variables can be printed with `fw_printenv`.
 
+Alternative way:
+
+Open config.txt in Pluto's USB mass storage device. Edit or add `xo_correction` in system section if not exists. Reboot or cycle power.
+
+```
+[SYSTEM]
+xo_correction = 40000017
+```
+
 In case you have a precise measurement tool, for example a spectrum analyzer, then you can calibrate your Pluto at the desired operating
 frequency and fine tune the value for xo_correction. In that case, wait at least 30min, keep the Pluto powered on during that time, to heat up
 and temperature stabilize the entire unit.
