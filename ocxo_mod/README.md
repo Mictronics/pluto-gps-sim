@@ -75,7 +75,7 @@ Open config.txt in Pluto's USB mass storage device. Edit or add `xo_correction` 
 
 ```
 [SYSTEM]
-xo_correction = 40000017
+xo_correction = 40000000
 ```
 
 In case you have a precise measurement tool, for example a spectrum analyzer, then you can calibrate your Pluto at the desired operating
