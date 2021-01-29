@@ -82,7 +82,7 @@ struct stream_cfg {
 static struct stream_cfg plutotx;
 static short *iq_buff = NULL;
 static pthread_t pluto_thread;
-static char rinex_date[20];
+static char rinex_date[21];
 
 struct ftp_file {
     const char *filename;
@@ -923,7 +923,7 @@ static int readRinex2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
             }
         } else if (strncmp(str + 60, "PGM / RUN BY / DATE", 19) == 0) {
             strncpy(rinex_date, str + 40, 20);
-            rinex_date[19] = 0;
+            rinex_date[20] = 0;
         } else if (strncmp(str + 60, "ION ALPHA", 9) == 0) {
             strncpy(tmp, str + 2, 12);
             tmp[12] = 0;
@@ -1290,7 +1290,7 @@ static int readRinex3(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
             }
         } else if (strncmp(str + 60, "PGM / RUN BY / DATE", 19) == 0) {
             strncpy(rinex_date, str + 40, 20);
-            rinex_date[19] = 0;
+            rinex_date[20] = 0;
         } else if (strncmp(str + 60, "IONOSPHERIC CORR", 16) == 0) {
             if (strncmp(str, "GPSA", 4) == 0) {
                 strncpy(tmp, str + 5, 12);
