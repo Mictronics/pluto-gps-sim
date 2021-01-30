@@ -6,8 +6,8 @@
  * Distributed under the MIT License.
  * 
  */
-#ifndef GPSSIM_H
-#define GPSSIM_H
+#ifndef PLUTOGPSSIM_H
+#define PLUTOGPSSIM_H
 
 #define FLOAT_CARR_PHASE // For RKT simulation. Higher computational load, but smoother carrier phase.
 
@@ -19,6 +19,11 @@
 
 /*! \brief Maximum number of channels we simulate */
 #define MAX_CHAN (12)
+
+/*! \brief Maximum number of user motion points */
+#ifndef USER_MOTION_SIZE
+#define USER_MOTION_SIZE (3000) // max duration at 10Hz
+#endif
 
 /*! \brief Number of subframes */
 #define N_SBF (5) // 5 subframes per frame

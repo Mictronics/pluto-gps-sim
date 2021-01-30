@@ -1076,7 +1076,7 @@ static int readRinex2(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
         tmp[19] = 0;
         replaceExpDesignator(tmp, 19);
         eph[ieph][sv].af2 = atof(tmp);
-        
+
         // BROADCAST ORBIT - 1
         if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
@@ -1413,7 +1413,7 @@ static int readRinex3(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
 
         strncpy(tmp, str + 21, 2);
         tmp[2] = 0;
-        t.sec = (double)atoi(tmp);
+        t.sec = (double) atoi(tmp);
 
         date2gps(&t, &g);
 
@@ -1430,7 +1430,7 @@ static int readRinex3(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
             if (ieph >= EPHEM_ARRAY_SIZE)
                 break;
         }
-        
+
         // Date and time
         eph[ieph][sv].t = t;
 
@@ -1451,7 +1451,7 @@ static int readRinex3(ephem_t eph[][MAX_SAT], ionoutc_t *ionoutc, const char *fn
         tmp[19] = 0;
         replaceExpDesignator(tmp, 19);
         eph[ieph][sv].af2 = atof(tmp);
-        
+
         // BROADCAST ORBIT - 1
         if (NULL == gzgets(fp, str, MAX_CHAR))
             break;
@@ -1789,6 +1789,37 @@ static void computeCodePhase(channel_t *chan, range_t rho1, double dt) {
     return;
 }
 
+/*! \brief Read the list of user motions from the input file
+ *  \param[out] xyz Output array of ECEF vectors for user motion
+ *  \param[[in] filename File name of the text input file
+ *  \returns Number of user data motion records read, -1 on error
+ */
+static int readUserMotion(double xyz[USER_MOTION_SIZE][3], const char *filename) {
+    FILE *fp;
+    int numd;
+    char str[MAX_CHAR];
+    double t, x, y, z;
+
+    if (NULL == (fp = fopen(filename, "rt")))
+        return (-1);
+
+    for (numd = 0; numd < USER_MOTION_SIZE; numd++) {
+        if (fgets(str, MAX_CHAR, fp) == NULL)
+            break;
+
+        if (EOF == sscanf(str, "%lf,%lf,%lf,%lf", &t, &x, &y, &z)) // Read CSV line
+            break;
+
+        xyz[numd][0] = x;
+        xyz[numd][1] = y;
+        xyz[numd][2] = z;
+    }
+
+    fclose(fp);
+
+    return (numd);
+}
+
 static int generateNavMsg(gpstime_t g, channel_t *chan, int init) {
     int iwrd, isbf;
     gpstime_t g0;
@@ -1963,7 +1994,8 @@ static int allocateChannel(channel_t *chan, ephem_t *eph, ionoutc_t ionoutc, gps
 static void usage(void) {
     fprintf(stderr, "Usage: pluto-gps-sim [options]\n"
             "Options:\n"
-            "  -e <gps_nav>     RINEX navigation file for GPS ephemerides (required)\n"
+            "  -e <file name>   RINEX navigation file for GPS ephemerides (required)\n"
+            "  -u <file name>   User motion file (dynamic mode) 10Hz, Max %u points\n"
             "  -3               Use RINEX version 3 format\n"
             "  -f               Pull actual RINEX navigation file from NASA FTP server\n"
             "  -c <location>    ECEF X,Y,Z in meters (static mode) e.g. 3967283.154,1022538.181,4872414.484\n"
@@ -1976,7 +2008,8 @@ static void usage(void) {
             "  -A <attenuation> Set TX attenuation [dB] (default -20.0)\n"
             "  -B <bw>          Set RF bandwidth [MHz] (default 3.0)\n"
             "  -U <uri>         ADALM-Pluto URI\n"
-            "  -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)\n");
+            "  -N <network>     ADALM-Pluto network IP or hostname (default pluto.local)\n",
+            (unsigned int) USER_MOTION_SIZE);
 
     return;
 }
@@ -2189,7 +2222,11 @@ int main(int argc, char *argv[]) {
     double delt;
     int isamp;
 
-    double xyz[1][3];
+    int numd = 0, iumd = 0;
+    // Allocate user motion array
+    double xyz[USER_MOTION_SIZE][3];   
+    
+    int staticLocationMode = true;
 
     bool use_rinex3 = false;
     bool use_ftp = false;
@@ -2201,6 +2238,7 @@ int main(int argc, char *argv[]) {
     };
 
     const char* navfile = NULL;
+    const char* umfile = NULL;
 
     int result;
     double gain[MAX_CHAN];
@@ -2262,6 +2300,10 @@ int main(int argc, char *argv[]) {
         switch (result) {
             case 'e':
                 navfile = optarg;
+                break;
+            case 'u':
+                umfile = optarg;
+                staticLocationMode = false;
                 break;
             case '3':
                 use_rinex3 = true;
@@ -2361,8 +2403,23 @@ int main(int argc, char *argv[]) {
     // Receiver position
     ////////////////////////////////////////////////////////////
 
-    // Static geodetic coordinates input mode: "-l"
-    fprintf(stderr, "Using static location mode.\n");
+    if (!staticLocationMode) {
+        // Read user motion file
+        numd = readUserMotion(xyz, umfile);
+
+        if (numd == -1) {
+            fprintf(stderr, "ERROR: Failed to open user motion file.\n");
+            exit(1);
+        } else if (numd == 0) {
+            fprintf(stderr, "ERROR: Failed to read user motion data.\n");
+            exit(1);
+        }
+
+        fprintf(stderr, "Using user motion mode.\n");
+    } else {
+        // Static geodetic coordinates input mode: "-l"
+        fprintf(stderr, "Using static location mode.\n");
+    }
 
     /*
     fprintf(stderr, "xyz = %11.1f, %11.1f, %11.1f\n", xyz[0][0], xyz[0][1], xyz[0][2]);
@@ -2382,10 +2439,10 @@ int main(int argc, char *argv[]) {
             tm->tm_hour = 23;
         }
 
-        if(use_rinex3) {
+        if (use_rinex3) {
             station = stations_v3[0].id_v2;
         }
-        
+
         // Compose FTP URL
         snprintf(url, NAME_MAX, RINEX_FTP_URL RINEX_FTP_FILE, (use_rinex3) ? RINEX3_SUBFOLDER : RINEX2_SUBFOLDER,
                 tm->tm_yday + 1, tm->tm_hour, station, tm->tm_yday + 1, 'a' + tm->tm_hour, tm->tm_year - 100);
@@ -2412,7 +2469,7 @@ int main(int argc, char *argv[]) {
 
         free(url);
         curl_global_cleanup();
-        
+
         if (res != CURLE_OK) {
             fprintf(stderr, "Curl error: %d\n", res);
             exit(1);
@@ -2606,7 +2663,11 @@ int main(int argc, char *argv[]) {
                 sv = chan[i].prn - 1;
 
                 // Current pseudorange
-                computeRange(&rho, eph[ieph][sv], &ionoutc, grx, xyz[0]);
+                if (!staticLocationMode) {
+                    computeRange(&rho, eph[ieph][sv], &ionoutc, grx, xyz[iumd]);
+                } else {
+                    computeRange(&rho, eph[ieph][sv], &ionoutc, grx, xyz[0]);
+                }
 
                 chan[i].azel[0] = rho.azel[0];
                 chan[i].azel[1] = rho.azel[1];
@@ -2735,10 +2796,19 @@ int main(int argc, char *argv[]) {
             }
 
             // Update channel allocation
-            allocateChannel(chan, eph[ieph], ionoutc, grx, xyz[0], elvmask);
+            if (!staticLocationMode) {
+                allocateChannel(chan, eph[ieph], ionoutc, grx, xyz[iumd], elvmask);
+            } else {
+                allocateChannel(chan, eph[ieph], ionoutc, grx, xyz[0], elvmask);
+            }
         }
         // Update receiver time
         grx = incGpsTime(grx, 0.1);
+        // update postition index
+        iumd++;
+        if (iumd >= numd) {
+            iumd = 0;
+        }
     }
 
 exit_main_thread:
