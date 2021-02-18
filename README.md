@@ -1,5 +1,7 @@
 # PLUTO-GPS-SIM
 
+__Project closed!__ Development continues on [multi-sdr-gps-sim](https://github.com/Mictronics/multi-sdr-gps-sim).
+
 PLUTO-GPS-SIM generates a GPS baseband signal IQ data stream, which is then transmitted by the
 software-defined radio (SDR) platform [ADALM-Pluto](https://wiki.analog.com/university/tools/pluto).
 
