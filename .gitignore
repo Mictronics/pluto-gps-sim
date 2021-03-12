@@ -28,4 +28,11 @@ pluto-gps-sim
 # Netbeans project folder
 nbproject/*
 
-rinex.gz
+# Rinex files
+*.gz
+
+# Almanac files
+*.sem
+*.sem.txt
+*.yuma
+*.alm
