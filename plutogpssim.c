@@ -40,7 +40,8 @@
 #define NOTUSED(V) ((void) V)
 #define MHZ(x) ((long long)(x*1000000.0 + .5))
 #define GHZ(x) ((long long)(x*1000000000.0 + .5))
-#define NUM_SAMPLES 260000
+#define TX_SAMPLE_FREQ 3000000
+#define NUM_SAMPLES (TX_SAMPLE_FREQ / 10)
 #define BUFFER_SIZE (NUM_SAMPLES * 2 * sizeof(int16_t))
 
 #if defined(__MACH__) || defined(__APPLE__)
@@ -2266,8 +2267,8 @@ int main(int argc, char *argv[]) {
     llh[1] = 139.766247 / R2D;
     llh[2] = 10.0;
 
-    plutotx.bw_hz = MHZ(3.0); // 3.0 MHz RF bandwidth
-    plutotx.fs_hz = MHZ(2.6); // 2.6 MS/s TX sample rate
+    plutotx.bw_hz = (TX_SAMPLE_FREQ * 2);
+    plutotx.fs_hz = TX_SAMPLE_FREQ;
     plutotx.lo_hz = GHZ(1.575420); // 1.57542 GHz RF frequency
     plutotx.rfport = "A";
     plutotx.gain_db = -20.0;
@@ -2428,7 +2429,7 @@ int main(int argc, char *argv[]) {
         time_t t = time(NULL);
         struct tm *tm = gmtime(&t);
         char* url = malloc(NAME_MAX);
-        const char *station = stations_v2[25].id_v2;
+        const char *station = stations_v2[14].id_v2;
         // We fetch data from previous hour because the actual hour is still in progress
         tm->tm_hour -= 1;
         if (tm->tm_hour < 0) {
